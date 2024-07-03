@@ -276,7 +276,7 @@ class NMT(nn.Module):
         for Y_t in torch.split(Y, 1, dim=0):
             Y_t = torch.squeeze(Y_t, dim=0)
             Ybar_t = torch.cat((o_prev, Y_t), 1)
-            state, o_t, _ = self.step(Ybar_t, enc_hiddens_proj, dec_init_state, dec_state)
+            state, o_t, _ = self.step(Ybar_t, enc_hiddens=enc_hiddens, enc_hiddens_proj=enc_hiddens_proj, dec_state=dec_state, enc_masks=enc_masks)
             combined_outputs.append(o_t)
             o_prev = o_t
 
