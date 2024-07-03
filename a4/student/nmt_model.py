@@ -88,7 +88,7 @@ class NMT(nn.Module):
         self.h_projection = torch.nn.Linear(hidden_size*2, hidden_size, bias=False)
         self.c_projection = torch.nn.Linear(hidden_size*2, hidden_size, bias=False)
         self.att_projection = torch.nn.Linear(hidden_size*2, hidden_size)
-        self.combined_output_projection = torch.nn.Linear(hidden_size*3, hidden_size)
+        self.combined_output_projection = torch.nn.Linear(hidden_size*3, hidden_size, bias=False)
         self.target_vocab_projection = torch.nn.Linear(hidden_size, len(vocab.tgt))
         self.dropout = nn.Dropout(p=self.dropout_rate)
 
@@ -342,9 +342,16 @@ class NMT(nn.Module):
         ### YOUR CODE HERE (~3 Lines)
         ### TODO:
         ###     1. Apply the decoder to `Ybar_t` and `dec_state`to obtain the new dec_state.
+        dec_state = self.decoder(Ybar_t, dec_state)
+
+        ### TODO:
         ###     2. Split dec_state into its two parts (dec_hidden, dec_cell)
+        dec_hidden, dec_cell =  dec_state
+
+        ### TODO:
         ###     3. Compute the attention scores e_t, a Tensor shape (b, src_len).
         ###        Note: b = batch_size, src_len = maximum source length, h = hidden size.
+        e_t = torch.bmm(enc_hiddens_proj, dec_hidden.unsqueeze(2)).squeeze(2)
         ###
         ###       Hints:
         ###         - dec_hidden is shape (b, h) and corresponds to h^dec_t in the PDF (batched)
@@ -372,6 +379,9 @@ class NMT(nn.Module):
         ### YOUR CODE HERE (~6 Lines)
         ### TODO:
         ###     1. Apply softmax to e_t to yield alpha_t
+        alpha_t = nn.functional.softmax(e_t, dim=1)
+
+        ### TODO:
         ###     2. Use batched matrix multiplication between alpha_t and enc_hiddens to obtain the
         ###         attention output vector, a_t.
         # $$     Hints:
@@ -381,9 +391,21 @@ class NMT(nn.Module):
         ###           - You will need to do some squeezing and unsqueezing.
         ###     Note: b = batch size, src_len = maximum source length, h = hidden size.
         ###
+        alpha_t = alpha_t.unsqueeze(dim=1)
+        a_t = torch.bmm(alpha_t, enc_hiddens).squeeze(dim=1)
+
+        ### TODO:
         ###     3. Concatenate dec_hidden with a_t to compute tensor U_t
+        U_t = torch.cat((dec_hidden, a_t), dim=1)
+
+        ### TODO:
         ###     4. Apply the combined output projection layer to U_t to compute tensor V_t
+        V_t = self.combined_output_projection(U_t)
+
+        ### TODO:
         ###     5. Compute tensor O_t by first applying the Tanh function and then the dropout layer.
+        O_t = self.dropout(torch.tanh(V_t))
+
         ###
         ### Use the following docs to implement this functionality:
         ###     Softmax:
