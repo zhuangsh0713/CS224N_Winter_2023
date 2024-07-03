@@ -154,9 +154,7 @@ class NMT(nn.Module):
         ###     1. Construct Tensor `X` of source sentences with shape (src_len, b, e) using the source model embeddings.
         ###         src_len = maximum source sentence length, b = batch size, e = embedding size. Note
         ###         that there is no initial hidden state or cell for the encoder.
-        print("start")
         X = self.model_embeddings.source(source_padded)
-        print("step 1 finished")
 
         ### TODO:
         ###     2. Apply the post_embed_cnn layer. Before feeding X into the CNN, first use torch.permute to change the
@@ -165,7 +163,6 @@ class NMT(nn.Module):
         X = torch.permute(X, (1, 2, 0))
         X = self.post_embed_cnn(X)
         X = torch.permute(X, (2, 0, 1))
-        print("step 2 finished")
 
         ### TODO:
         ###     3. Compute `enc_hiddens`, `last_hidden`, `last_cell` by applying the encoder to `X`.
@@ -180,7 +177,6 @@ class NMT(nn.Module):
         # how to ensure the same shape?
         enc_hiddens, len = torch.nn.utils.rnn.pad_packed_sequence(enc_hiddens, batch_first=True)
         # enc_hiddens = torch.permute(enc_hiddens, (1, 0, 2))
-        print("step 3 finished")
 
         ### TODO:
         ###     4. Compute `dec_init_state` = (init_decoder_hidden, init_decoder_cell):
