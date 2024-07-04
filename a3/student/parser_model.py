@@ -53,10 +53,24 @@ class ParserModel(nn.Module):
         ###     1) Declare `self.embed_to_hidden_weight` and `self.embed_to_hidden_bias` as `nn.Parameter`.
         ###        Initialize weight with the `nn.init.xavier_uniform_` function and bias with `nn.init.uniform_`
         ###        with default parameters.
+        self.embed_to_hidden_weight = nn.Parameter(torch.Tensor(n_features * self.embed_size, hidden_size))
+        self.embed_to_hidden_bias = nn.Parameter(torch.zeros(1, hidden_size))
+        self.embed_to_hidden_weight = nn.init.xavier_uniform_(self.embed_to_hidden_weight)
+        self.embed_to_hidden_bias = nn.init.uniform_(self.embed_to_hidden_bias)
+
+        ### TODO:
         ###     2) Construct `self.dropout` layer.
+        self.dropout = nn.Dropout(p=self.dropout_prob)
+
+        ### TODO:
         ###     3) Declare `self.hidden_to_logits_weight` and `self.hidden_to_logits_bias` as `nn.Parameter`.
         ###        Initialize weight with the `nn.init.xavier_uniform_` function and bias with `nn.init.uniform_`
         ###        with default parameters.
+        self.hidden_to_logits_weight = nn.Parameter(torch.Tensor(self.hidden_size, 1))
+        self.hidden_to_logits_bias = nn.Parameter(torch.zeros(1, n_classes))
+        nn.init.xavier_uniform_(self.hidden_to_logits_weight)
+        nn.init.uniform_(self.hidden_to_logits_bias)
+
         ###
         ### Note: Trainable variables are declared as `nn.Parameter` which is a commonly used API
         ###       to include a tensor into a computational graph to support updating w.r.t its gradient.
@@ -72,10 +86,6 @@ class ParserModel(nn.Module):
         ###     Dropout: https://pytorch.org/docs/stable/nn.html#dropout-layers
         ### 
         ### See the PDF for hints.
-
-
-
-
         ### END YOUR CODE
 
     def embedding_lookup(self, w):
@@ -89,6 +99,15 @@ class ParserModel(nn.Module):
         ### YOUR CODE HERE (~1-4 Lines)
         ### TODO:
         ###     1) For each index `i` in `w`, select `i`th vector from self.embeddings
+        # print(torch.Tensor.size(w))
+        # torch.Size([4, 36])
+
+        n_features = w.shape[1]
+        x = [torch.index_select(self.embeddings, 0, i) for i in w]
+        x = [sentence.view(1,  n_features * self.embed_size) for sentence in x]
+        x = torch.stack(x, dim=0).squeeze()
+
+        ### TODO:
         ###     2) Reshape the tensor using `view` function if necessary
         ###
         ### Note: All embedding vectors are stacked and stored as a matrix. The model receives
@@ -106,8 +125,6 @@ class ParserModel(nn.Module):
         ###     Gather: https://pytorch.org/docs/stable/torch.html#torch.gather
         ###     View: https://pytorch.org/docs/stable/tensors.html#torch.Tensor.view
         ###     Flatten: https://pytorch.org/docs/stable/generated/torch.flatten.html
-
-
 
         ### END YOUR CODE
         return x
@@ -136,6 +153,9 @@ class ParserModel(nn.Module):
         ### TODO:
         ###     Complete the forward computation as described in write-up. In addition, include a dropout layer
         ###     as decleared in `__init__` after ReLU function.
+        h = torch.nn.functional.relu(torch.matmul(self.embedding_lookup(w), self.embed_to_hidden_weight) + self.embed_to_hidden_bias)
+        h = self.dropout(h)
+        logits = torch.matmul(h, self.hidden_to_logits_weight) + self.hidden_to_logits_bias
         ###
         ### Note: We do not apply the softmax to the logits here, because
         ### the loss function (torch.nn.CrossEntropyLoss) applies it more efficiently.
